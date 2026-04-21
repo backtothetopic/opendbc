@@ -228,6 +228,9 @@ static safety_config tesla_legacy_init(uint16_t param) {
   static const CanMsg TESLA_TX_LEGACY_HW1_MSGS[] = {
     {0x488, 0, 4, .check_relay = true, .disable_static_blocking = true},  // DAS_steeringControl
     {0x2b9, 0, 8, .check_relay = true, .disable_static_blocking = true},  // DAS_control
+    // tesla-unity IC integration: HUD messages (blue lane lines on instrument cluster)
+    {0x239, 0, 8, .check_relay = false},                                  // DAS_lanes
+    {0x399, 0, 8, .check_relay = false},                                  // DAS_status
   };
 
   // Define RX check arrays (keeping them as is)

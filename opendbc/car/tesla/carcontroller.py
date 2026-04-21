@@ -23,6 +23,9 @@ class CarController(CarControllerBase):
     self.packer = CANPacker(dbc_names[Bus.party])
     self.tesla_can = TeslaCAN(CP, self.packer)
 
+    # tesla-unity IC integration: track engagement state for clean line disappear on disengage
+    self.ic_previous_enabled = False
+
     # Vehicle model used for lateral limiting
     self.VM = VehicleModel(get_safety_CP())
 
@@ -73,7 +76,20 @@ class CarController(CarControllerBase):
         cntr = (CS.das_control["DAS_controlCounter"] + 1) % 8
         can_sends.append(self.tesla_can.create_longitudinal_command(13, 0, cntr, CS.out.vEgo, False, CS.out.gasPressed))
 
-    # TODO: HUD control
+    # tesla-unity IC integration: blue lane lines on instrument cluster (HW1 only for now)
+    # V1: straight-lane rendering — lines appear when openpilot is engaged, disappear on disengage.
+    # The `or self.ic_previous_enabled` on disengage sends one final "lanes off" frame so the IC
+    # cleanly transitions out of AP-active display.
+    if self.CP.carFingerprint in (CAR.TESLA_MODEL_S_HW1, CAR.TESLA_MODEL_X_HW1):
+      enabled = CC.enabled
+      # DAS_lanes at 10Hz (carcontroller runs at 100Hz)
+      if self.frame % 10 == 0:
+        can_sends.append(self.tesla_can.create_lane_message(enabled or self.ic_previous_enabled, 1))
+      # DAS_status at 2Hz
+      if self.frame % 50 == 0:
+        can_sends.append(self.tesla_can.create_das_status(enabled, 1))
+      self.ic_previous_enabled = enabled
+
     new_actuators = actuators.as_builder()
     new_actuators.steeringAngleDeg = self.apply_angle_last
 

@@ -63,3 +63,24 @@ class TeslaCANRaven:
     data = self.packers[CANBUS.party].make_can_msg("APS_eacMonitor", CANBUS.party, values)[1]
     values["APS_eacMonitorChecksum"] = self.checksum(0x27d, data[:2])
     return self.packers[CANBUS.party].make_can_msg("APS_eacMonitor", CANBUS.party, values)
+
+  def create_lane_message(self, counter, enabled):
+    # DAS_lanes (0x239) — tells the instrument cluster to draw lane lines.
+    # No checksum on this message in xnor's DBC. Phase 1: straight virtual lane,
+    # constant width/range. Real polynomial curves can be wired in later.
+    values = {
+      "DAS_leftLaneExists": 1 if enabled else 0,
+      "DAS_rightLaneExists": 1 if enabled else 0,
+      "DAS_virtualLaneWidth": 3.7,        # ~US highway lane width
+      "DAS_virtualLaneViewRange": 50,     # meters ahead
+      "DAS_virtualLaneC0": 0.0,
+      "DAS_virtualLaneC1": 0.0,
+      "DAS_virtualLaneC2": 0.0,
+      "DAS_virtualLaneC3": 0.0,
+      "DAS_leftLineUsage": 2 if enabled else 0,   # 2 = HIGH_CONFIDENCE
+      "DAS_rightLineUsage": 2 if enabled else 0,
+      "DAS_leftFork": 0,
+      "DAS_rightFork": 0,
+      "DAS_lanesCounter": counter,
+    }
+    return self.packers[CANBUS.party].make_can_msg("DAS_lanes", CANBUS.party, values)

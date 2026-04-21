@@ -73,6 +73,11 @@ class CarController(CarControllerBase):
         cntr = (CS.das_control["DAS_controlCounter"] + 1) % 8
         can_sends.append(self.tesla_can.create_longitudinal_command(13, 0, cntr, CS.out.vEgo, False, CS.out.gasPressed))
 
+    # IC integration Phase 1: blue lane lines on the instrument cluster when openpilot is engaged (HW1 only)
+    if self.CP.carFingerprint in (CAR.TESLA_MODEL_S_HW1, CAR.TESLA_MODEL_X_HW1) and self.frame % 10 == 0:
+      lanes_cntr = (self.frame // 10) % 16
+      can_sends.append(self.tesla_can.create_lane_message(lanes_cntr, CC.enabled))
+
     # TODO: HUD control
     new_actuators = actuators.as_builder()
     new_actuators.steeringAngleDeg = self.apply_angle_last

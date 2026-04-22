@@ -229,6 +229,8 @@ static safety_config tesla_legacy_init(uint16_t param) {
     {0x488, 0, 4, .check_relay = true, .disable_static_blocking = true},  // DAS_steeringControl
     {0x2b9, 0, 8, .check_relay = true, .disable_static_blocking = true},  // DAS_control
     {0x239, 0, 8, .check_relay = true, .disable_static_blocking = true},  // DAS_lanes (IC integration)
+    {0x399, 0, 8, .check_relay = true, .disable_static_blocking = true},  // AutopilotStatus (IC integration)
+    {0x389, 0, 8, .check_relay = true, .disable_static_blocking = true},  // DAS_status2 (IC integration)
   };
 
   // Define RX check arrays (keeping them as is)

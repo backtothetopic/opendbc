@@ -84,3 +84,62 @@ class TeslaCANRaven:
       "DAS_lanesCounter": counter,
     }
     return self.packers[CANBUS.party].make_can_msg("DAS_lanes", CANBUS.party, values)
+
+  def create_das_status(self, counter, enabled):
+    # AutopilotStatus (0x399) — xnor's renamed DAS_status. Telling the IC that
+    # autopilot is active is what unlocks blue lane rendering from DAS_lanes.
+    # Checksum intentionally left at 0 (tesla-unity's proven pattern — the IC
+    # does not validate this checksum on AP1).
+    values = {
+      "autopilotStatus": 3 if enabled else 2,   # 3=ACTIVE_1, 2=AVAILABLE
+      "DAS_blindSpotRearLeft": 0,
+      "DAS_blindSpotRearRight": 0,
+      "DAS_fusedSpeedLimit": 0,                 # no speed-limit display yet
+      "DAS_suppressSpeedWarning": 0,
+      "DAS_summonObstacle": 0,
+      "DAS_summonClearedGate": 0,
+      "DAS_visionOnlySpeedLimit": 0,
+      "DAS_heaterState": 0,
+      "DAS_forwardCollisionWarning": 0,
+      "DAS_autoparkReady": 0,
+      "DAS_autoParked": 0,
+      "DAS_autoparkWaitingForBrake": 0,
+      "DAS_summonFwdLeashReached": 0,
+      "DAS_summonRvsLeashReached": 0,
+      "DAS_sideCollisionAvoid": 0,
+      "DAS_sideCollisionWarning": 0,
+      "DAS_sideCollisionInhibit": 0,
+      "DAS_csaState": 2 if enabled else 1,      # 2=ACTIVE, 1=HEALTHY_IDLE
+      "DAS_laneDepartureWarning": 0,
+      "DAS_fleetSpeedState": 0,
+      "DAS_autopilotHandsOnState": 2,           # 2=normal (no warning)
+      "DAS_autoLaneChangeState": 0,
+      "DAS_summonAvailable": 0,
+      "DAS_statusCounter": counter,
+      "DAS_statusChecksum": 0,
+    }
+    return self.packers[CANBUS.party].make_can_msg("AutopilotStatus", CANBUS.party, values)
+
+  def create_das_status2(self, counter, enabled):
+    # DAS_status2 (0x389) — companion to AutopilotStatus. ACC/radar/robustness
+    # status fields. Checksum left at 0 per tesla-unity pattern.
+    values = {
+      "DAS_accSpeedLimit": 0,
+      "DAS_pmmObstacleSeverity": 0,
+      "DAS_pmmLoggingRequest": 0,
+      "DAS_activationFailureStatus": 0,
+      "DAS_pmmUltrasonicsFaultReason": 0,
+      "DAS_pmmRadarFaultReason": 0,
+      "DAS_pmmSysFaultReason": 0,
+      "DAS_pmmCameraFaultReason": 0,
+      "DAS_ACC_report": 1,
+      "DAS_lssState": 0,
+      "DAS_radarTelemetry": 1,
+      "DAS_robState": 2,
+      "DAS_driverInteractionLevel": 0,
+      "DAS_ppOffsetDesiredRamp": 0.0,
+      "DAS_longCollisionWarning": 0,
+      "DAS_status2Counter": counter,
+      "DAS_status2Checksum": 0,
+    }
+    return self.packers[CANBUS.party].make_can_msg("DAS_status2", CANBUS.party, values)

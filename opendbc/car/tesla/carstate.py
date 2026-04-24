@@ -1,6 +1,6 @@
 import copy
 from opendbc.can import CANDefine, CANParser
-from opendbc.car import Bus, structs
+from opendbc.car import Bus, create_button_events, structs
 from opendbc.car.carlog import carlog
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarStateBase
@@ -43,6 +43,7 @@ class CarState(CarStateBase):
 
     self.hands_on_level = 0
     self.das_control = None
+    self.distance_button = 0
 
   def update_autopark_state(self, autopark_state: str, cruise_enabled: bool):
     autopark_now = autopark_state in ("ACTIVE", "COMPLETE", "SELFPARK_STARTED")
@@ -250,7 +251,12 @@ class CarState(CarStateBase):
     # Stock Autosteer should be off (includes FSD)
     # ret.invalidLkasSetting = cp_ap_party.vl["DAS_settings"]["DAS_autosteerEnabled"] != 0
 
-    # Buttons # ToDo: add Gap adjust button
+    # Gap adjust button (cruise stalk end): cycle openpilot follow-distance personality
+    # DTR_Dist_Rq fires a non-zero value on stalk press; normalize to 1 so we detect the rising edge
+    prev_distance_button = self.distance_button
+    self.distance_button = 1 if cp_chassis.vl["STW_ACTN_RQ"]["DTR_Dist_Rq"] > 0 else 0
+    ret.buttonEvents = create_button_events(self.distance_button, prev_distance_button,
+                                            {1: ButtonType.gapAdjustCruise})
 
     # Messages needed by carcontroller
     self.das_control = copy.copy(cp_ap_pt.vl["DAS_control"])

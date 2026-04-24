@@ -268,7 +268,9 @@ class CarState(CarStateBase):
         if self._tesla_params is None:
           from openpilot.common.params import Params
           self._tesla_params = Params()
-        self._tesla_params.put_nonblocking("TeslaGapLevel", new_level)
+        # Blocking put so selfdrived's alert reads the new level after the buttonEvent
+        # propagates. Knob changes are rare (human input), so the ~ms cost is fine.
+        self._tesla_params.put("TeslaGapLevel", new_level)
       except ImportError:
         pass
       if prev_level >= 0:

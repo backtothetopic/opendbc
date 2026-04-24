@@ -268,7 +268,7 @@ class CarState(CarStateBase):
         if self._tesla_params is None:
           from openpilot.common.params import Params
           self._tesla_params = Params()
-        self._tesla_params.put_nonblocking("TeslaGapLevel", str(new_level))
+        self._tesla_params.put_nonblocking("TeslaGapLevel", new_level)
       except ImportError:
         pass
       if prev_level >= 0:

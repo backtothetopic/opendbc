@@ -44,6 +44,10 @@ class CarState(CarStateBase):
     self.hands_on_level = 0
     self.das_control = None
 
+    # Tesla distance knob (AP1/legacy): mirror DTR_Dist_Rq raw values into TeslaGapLevel
+    self.tesla_gap_level = -1  # uninitialized; first valid read won't emit button event
+    self._tesla_params = None
+
   def update_autopark_state(self, autopark_state: str, cruise_enabled: bool):
     autopark_now = autopark_state in ("ACTIVE", "COMPLETE", "SELFPARK_STARTED")
     if autopark_now and not self.autopark_prev and not self.cruise_enabled_prev:
@@ -252,7 +256,33 @@ class CarState(CarStateBase):
     # Stock Autosteer should be off (includes FSD)
     # ret.invalidLkasSetting = cp_ap_party.vl["DAS_settings"]["DAS_autosteerEnabled"] != 0
 
-    # Buttons # ToDo: add Gap adjust button
+    # Buttons: Tesla distance knob (cruise stalk, STW_ACTN_RQ on chassis bus).
+    # DTR_Dist_Rq raw values map to 7 detents 0..6 (= UI levels 1..7). On every
+    # change we mirror into the TeslaGapLevel param (so the longitudinal MPC
+    # picks up the new follow-distance) and emit a gapAdjustCruise button event
+    # so selfdrived can show the toast.
+    _DIST_RAW_TO_LEVEL = {0: 0, 33: 1, 66: 2, 100: 3, 133: 4, 166: 5, 200: 6}
+    raw = int(cp_chassis.vl["STW_ACTN_RQ"]["DTR_Dist_Rq"])
+    new_level = _DIST_RAW_TO_LEVEL.get(raw)
+    if new_level is not None and new_level != self.tesla_gap_level:
+      prev_level = self.tesla_gap_level
+      self.tesla_gap_level = new_level
+      try:
+        if self._tesla_params is None:
+          from openpilot.common.params import Params
+          self._tesla_params = Params()
+        # Blocking put so the alert reads the fresh value when the buttonEvent
+        # propagates. Knob changes are rare (human input) so cost is negligible.
+        self._tesla_params.put("TeslaGapLevel", new_level)
+      except ImportError:
+        pass
+      except Exception:
+        pass
+      if prev_level >= 0:
+        ev = structs.CarState.ButtonEvent()
+        ev.type = ButtonType.gapAdjustCruise
+        ev.pressed = True
+        ret.buttonEvents = [ev]
 
     # Messages needed by carcontroller
     self.das_control = copy.copy(cp_ap_pt.vl["DAS_control"])
